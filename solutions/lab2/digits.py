@@ -32,7 +32,6 @@ for i in range(10):
 plt.tight_layout()
 plt.show()
 
-# Funkcja do oceny modelu
 def evaluate_model(model, X_train, X_test, y_train, y_test, model_name="Model"):
     start_time = time.time()
     model.fit(X_train, y_train)
@@ -80,7 +79,6 @@ for arch in architectures:
     architectures_results.append(result)
     print(f"Architektura {arch}: Dokładność = {result['accuracy']:.4f}, Czas = {result['training_time']:.2f}s")
 
-# Wizualizacja wpływu architektury na dokładność
 plt.figure(figsize=(12, 6))
 architectures_names = [str(arch) for arch in architectures]
 accuracies = [result['accuracy'] for result in architectures_results]
@@ -111,7 +109,6 @@ for activation in activations:
     activation_results.append(result)
     print(f"Funkcja aktywacji {activation}: Dokładność = {result['accuracy']:.4f}, Czas = {result['training_time']:.2f}s")
 
-# Wizualizacja wpływu funkcji aktywacji na dokładność
 plt.figure(figsize=(10, 6))
 plt.bar(activations, [result['accuracy'] for result in activation_results])
 plt.xlabel('Funkcja aktywacji')
@@ -138,7 +135,6 @@ for max_iter in max_iters:
     epochs_results.append(result)
     print(f"Liczba iteracji {max_iter}: Dokładność = {result['accuracy']:.4f}, Czas = {result['training_time']:.2f}s")
 
-# Wizualizacja wpływu ilości epok na dokładność
 plt.figure(figsize=(10, 6))
 plt.plot(max_iters, [result['accuracy'] for result in epochs_results], marker='o')
 plt.xlabel('Liczba iteracji')
@@ -166,7 +162,6 @@ for solver in solvers:
     solver_results.append(result)
     print(f"Algorytm {solver}: Dokładność = {result['accuracy']:.4f}, Czas = {result['training_time']:.2f}s")
 
-# Wizualizacja wpływu algorytmu na dokładność
 plt.figure(figsize=(10, 6))
 plt.bar(solvers, [result['accuracy'] for result in solver_results])
 plt.xlabel('Algorytm uczenia')
@@ -194,7 +189,6 @@ for lr in learning_rates:
     lr_results.append(result)
     print(f"Learning rate {lr}: Dokładność = {result['accuracy']:.4f}, Czas = {result['training_time']:.2f}s")
 
-# Wizualizacja wpływu learning rate na dokładność
 plt.figure(figsize=(10, 6))
 plt.plot(learning_rates, [result['accuracy'] for result in lr_results], marker='o')
 plt.xlabel('Learning Rate')
@@ -234,7 +228,6 @@ interesting_models = [
     max(lr_results, key=lambda x: x['accuracy']),             # najlepszy learning rate dla SGD
 ]
 
-# Porównanie metryk dla ciekawych modeli
 metrics = ['accuracy', 'precision', 'recall', 'f1']
 comparison_data = {metric: [model[metric] for model in interesting_models] for metric in metrics}
 model_names = [model['model_name'] for model in interesting_models]

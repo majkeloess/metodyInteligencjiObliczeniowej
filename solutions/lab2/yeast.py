@@ -132,7 +132,6 @@ print(f"Dokładność (zbiór treningowy): {base_result['train_accuracy']:.4f}")
 print(f"Dokładność (zbiór testowy): {base_result['test_accuracy']:.4f}")
 print(f"Czas treningu: {base_result['training_time']:.2f}s")
 
-# Macierz pomyłek dla bazowego modelu (zbiór testowy)
 plt.figure(figsize=(12, 8))
 cm = confusion_matrix(y_test, base_result['y_test_pred'])
 sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=class_names_filtered, yticklabels=class_names_filtered)
@@ -164,7 +163,6 @@ for arch in architectures:
     arch_results.append(result)
     print(f"Architektura {arch}: Dokładność = {result['test_accuracy']:.4f}, Czas = {result['training_time']:.2f}s")
 
-# Wizualizacja wpływu architektury na dokładność i czas
 plt.figure(figsize=(14, 6))
 plt.subplot(1, 2, 1)
 plt.bar([str(arch) for arch in architectures], [result['test_accuracy'] for result in arch_results])
@@ -242,8 +240,18 @@ plt.show()
 
 # 5. SMOTE - obsługa niezbalansowanych klas
 print("\n5. Zastosowanie SMOTE do balansowania klas:")
+
+# Sprawdzenie minimalnej liczby próbek w klasie w zbiorze treningowym
+train_class_counts = np.bincount(y_train)
+min_train_samples = np.min(train_class_counts[train_class_counts > 0])
+print(f"Minimalna liczba próbek w klasie w zbiorze treningowym: {min_train_samples}")
+
 # Używamy mniejszej liczby sąsiadów dla SMOTE, aby uniknąć błędu
-smote = SMOTE(random_state=42, k_neighbors=min(3, min_samples-1))
+# Musi być mniejsza niż liczba próbek w najmniejszej klasie
+k_neighbors = min(2, min_train_samples-1) if min_train_samples > 1 else 1
+print(f"Używam k_neighbors={k_neighbors} dla SMOTE")
+
+smote = SMOTE(random_state=42, k_neighbors=k_neighbors)
 X_train_smote, y_train_smote = smote.fit_resample(X_train_scaled, y_train)
 
 # Sprawdzenie rozkładu klas po SMOTE
@@ -292,6 +300,8 @@ grid_search = GridSearchCV(
     scoring='accuracy'
 )
 
+# Trenowanie modelu z użyciem GridSearchCV
+print("Trwa proces wyszukiwania optymalnych parametrów (może potrwać dłużej)...")
 grid_search.fit(X_train_smote, y_train_smote)
 
 print(f"Najlepsze parametry: {grid_search.best_params_}")
@@ -328,7 +338,7 @@ plt.title('Macierz pomyłek dla optymalnego modelu (zbiór testowy)')
 plt.tight_layout()
 plt.show()
 
-# Porównanie metryk dla wszystkich modeli
+# 7. Porównanie metryk dla wszystkich modeli
 print("\n7. Porównanie najlepszych modeli:")
 best_models = [
     max(arch_results, key=lambda x: x['test_accuracy']),  # najlepsza architektura
