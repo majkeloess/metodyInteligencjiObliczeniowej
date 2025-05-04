@@ -47,10 +47,73 @@ def wczytaj_dane(plik):
     
     return dane
 
+# Funkcja do wykrywania outlierów metodą IQR
+def wykryj_outliery_iqr(df, cols, factor=1.5):
+    """
+    Wykrywa outliery w danych używając metody IQR (Interquartile Range).
+    
+    Parametry:
+    df (DataFrame): DataFrame z danymi
+    cols (list): Lista nazw kolumn do analizy
+    factor (float): Współczynnik IQR (domyślnie 1.5)
+    
+    Zwraca:
+    list: Indeksy wierszy zawierających outliery
+    """
+    outlier_indices = []
+    
+    for col in cols:
+        # Pomijamy kolumny z brakującymi wartościami
+        if df[col].isnull().any():
+            valid_data = df[col].dropna()
+        else:
+            valid_data = df[col]
+        
+        Q1 = np.percentile(valid_data, 25)
+        Q3 = np.percentile(valid_data, 75)
+        IQR = Q3 - Q1
+        
+        outlier_low = Q1 - factor * IQR
+        outlier_high = Q3 + factor * IQR
+        
+        # Wykrywanie outlierów w kolumnie
+        outliers = df[(df[col] < outlier_low) | (df[col] > outlier_high)].index
+        outlier_indices.extend(outliers)
+    
+    # Zwracamy unikalne indeksy
+    return list(set(outlier_indices))
+
 # Funkcja do przygotowania danych do klasteryzacji
-def przygotuj_dane(dane, cechy, skalowanie='standardowe'):
+def przygotuj_dane(dane, cechy, skalowanie='standardowe', usun_outliery=False, iqr_factor=1.5):
     # Wybieramy tylko interesujące nas cechy
     dane_do_klasteryzacji = dane[cechy].copy()
+    
+    # Usuwanie outlierów jeśli wybrano taką opcję
+    if usun_outliery:
+        # Najpierw imputujemy brakujące wartości, żeby móc wykryć outliery
+        tymczasowy_imputer = SimpleImputer(strategy='median')
+        dane_imputowane = pd.DataFrame(
+            tymczasowy_imputer.fit_transform(dane_do_klasteryzacji),
+            columns=cechy
+        )
+        
+        # Wykrywanie outlierów
+        outliery_idx = wykryj_outliery_iqr(dane_imputowane, cechy, iqr_factor)
+        
+        # Wyświetlenie informacji o outlierach
+        if outliery_idx:
+            print(f"\nWykryto {len(outliery_idx)} outlierów ({len(outliery_idx)/dane_do_klasteryzacji.shape[0]:.1%} danych)")
+            for cecha in cechy:
+                if dane[cecha].iloc[outliery_idx].notna().any():
+                    min_val = dane[cecha].iloc[outliery_idx].min()
+                    max_val = dane[cecha].iloc[outliery_idx].max()
+                    print(f"Zakres outlierów dla {cecha}: [{min_val:.2f}, {max_val:.2f}]")
+        
+        # Usuwanie wierszy z outlierami
+        dane_bez_outlierow = dane_do_klasteryzacji.drop(outliery_idx)
+        dane_do_klasteryzacji = dane_bez_outlierow
+        
+        print(f"Liczba danych po usunięciu outlierów: {dane_do_klasteryzacji.shape[0]}")
     
     # Imputacja brakujących wartości (zastępowanie medianą)
     imputer = SimpleImputer(strategy='median')
@@ -383,7 +446,7 @@ def porownaj_metody(dane_przeskalowane, etykiety_kmeans, etykiety_hierarchical, 
     plt.show()
 
 # Główna funkcja wykonująca analizę klasteryzacji
-def analiza_klasteryzacji_planet(sciezka_danych='../../data/lab6/planets.csv'):
+def analiza_klasteryzacji_planet(sciezka_danych='../../data/lab6/planets.csv', usun_outliery=False):
     # Wczytanie danych
     dane = wczytaj_dane(sciezka_danych)
     
@@ -391,7 +454,7 @@ def analiza_klasteryzacji_planet(sciezka_danych='../../data/lab6/planets.csv'):
     cechy = ['pl_orbper', 'pl_orbsmax', 'pl_rade', 'pl_masse', 'pl_orbeccen', 'pl_eqt', 'st_teff', 'st_mass']
     
     # Przygotowanie danych
-    dane_przeskalowane, scaler = przygotuj_dane(dane, cechy)
+    dane_przeskalowane, scaler = przygotuj_dane(dane, cechy, usun_outliery=usun_outliery)
     
     # Znalezienie optymalnej liczby klastrów
     optymalna_liczba_klastrow = znajdz_optymalna_liczbe_klastrow(dane_przeskalowane)
@@ -469,7 +532,12 @@ def uruchom_w_colab():
 
 # Wywołanie głównej funkcji
 if __name__ == "__main__":
+    print("\n=== ANALIZA Z OUTLIERAMI ===")
     analiza_klasteryzacji_planet()
+    
+    print("\n\n=== ANALIZA BEZ OUTLIERÓW ===")
+    analiza_klasteryzacji_planet(usun_outliery=True)
+    
     # Wydrukuj instrukcję dla Google Colab
     print("\n=== INSTRUKCJA DLA GOOGLE COLAB ===")
     print("Aby uruchomić ten skrypt w Google Colab, załaduj plik planets.csv i użyj funkcji analiza_klasteryzacji_planet('planets.csv')")

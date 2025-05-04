@@ -7,19 +7,30 @@ from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bo
 from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import NearestNeighbors
 
+# Ustawienie większej figury dla wszystkich wykresów
+plt.figure(figsize=(20, 20))
+plt.suptitle('Analiza klasteryzacji danych kołowych', fontsize=18)
+
 # Wczytanie danych
 data = pd.read_csv('../../data/lab6/circle.csv')
 X = data.values
 
+# Obliczenie liczby wykresów
+# 1 dla danych wejściowych + 1 dla K-Means + 4 dla Hierarchicznej + 1 dla DBSCAN 
+# + 4 dla GMM + 2 dla Spectral + 1 dla DBSCAN alt + 3 dla wykresów metryk
+total_plots = 16
+rows = 4
+cols = 4
+
 # Wizualizacja danych wejściowych
-plt.figure(figsize=(10, 8))
+plt.subplot(rows, cols, 1)
 plt.scatter(X[:, 0], X[:, 1], s=50, alpha=0.7)
 plt.title('Dane wejściowe')
 plt.xlabel('x1')
 plt.ylabel('x2')
 plt.grid(True)
-plt.savefig('circle_data.png')
-plt.close()
+
+current_plot = 2  # Zaczynamy od drugiego plotu
 
 # Funkcja do oceny jakości klasteryzacji
 def evaluate_clustering(X, labels, model_name):
@@ -40,37 +51,44 @@ def evaluate_clustering(X, labels, model_name):
     return metrics
 
 # Funkcja do wizualizacji wyników klasteryzacji
-def visualize_clustering(X, labels, model_name, metrics=None):
-    plt.figure(figsize=(10, 8))
+def visualize_clustering(X, labels, model_name, metrics=None, plot_idx=None):
+    global current_plot
+    
+    if plot_idx is None:
+        plot_idx = current_plot
+        current_plot += 1
+    
+    plt.subplot(rows, cols, plot_idx)
     plt.scatter(X[:, 0], X[:, 1], c=labels, cmap='viridis', s=50, alpha=0.7)
     
     title = f'Klasteryzacja - {model_name}'
     if metrics:
-        title += f'\nSilhouette: {metrics["silhouette"]:.4f}, CH: {metrics["calinski_harabasz"]:.0f}, DB: {metrics["davies_bouldin"]:.4f}'
+        title += f'\nS: {metrics["silhouette"]:.2f}, CH: {metrics["calinski_harabasz"]:.0f}, DB: {metrics["davies_bouldin"]:.2f}'
     
     plt.title(title)
     plt.xlabel('x1')
     plt.ylabel('x2')
     plt.grid(True)
-    plt.colorbar(label='Numer klastra')
-    plt.savefig(f'circle_{model_name.lower().replace(" ", "_")}.png')
-    plt.close()
+    plt.colorbar(label='Klaster')
 
 # Funkcja pomocnicza do znalezienia optymalnego parametru eps dla DBSCAN
-def find_optimal_eps(X, k=5):
+def find_optimal_eps(X, k=5, plot_idx=None):
+    global current_plot
+    if plot_idx is None:
+        plot_idx = current_plot
+        current_plot += 1
+    
     neigh = NearestNeighbors(n_neighbors=k)
     neigh.fit(X)
     distances, _ = neigh.kneighbors(X)
     distances = np.sort(distances[:, k-1])
     
-    plt.figure(figsize=(10, 6))
+    plt.subplot(rows, cols, plot_idx)
     plt.plot(distances)
     plt.title(f'Wykres odległości do {k}-tego sąsiada')
     plt.xlabel('Punkty posortowane wg odległości')
     plt.ylabel(f'Odległość do {k}-tego sąsiada')
     plt.grid(True)
-    plt.savefig('dbscan_eps_analysis.png')
-    plt.close()
     
     # Znajdź "łokieć" na wykresie (punkt gdzie nachylenie się zmienia)
     # Uproszczona metoda: znajdź punkt gdzie druga pochodna osiąga maksimum
@@ -84,6 +102,7 @@ def find_optimal_eps(X, k=5):
 
 # Funkcja do oceny optymalnej liczby klastrów dla metod parametrycznych
 def find_optimal_k(X, max_k=10):
+    global current_plot
     silhouette_scores = []
     ch_scores = []
     db_scores = []
@@ -97,30 +116,18 @@ def find_optimal_k(X, max_k=10):
         ch_scores.append(calinski_harabasz_score(X, labels))
         db_scores.append(davies_bouldin_score(X, labels))
     
-    # Wizualizacja wyników
-    plt.figure(figsize=(15, 5))
+    # Wizualizacja wyników - trzy metryki na jednym wykresie
+    plot_idx = current_plot
+    current_plot += 1
     
-    plt.subplot(1, 3, 1)
-    plt.plot(k_values, silhouette_scores, 'o-')
-    plt.title('Silhouette Score')
+    plt.subplot(rows, cols, plot_idx)
+    plt.plot(k_values, silhouette_scores, 'o-', label='Silhouette')
+    plt.plot(k_values, [s/max(ch_scores) for s in ch_scores], 'o-', label='CH (norm)')
+    plt.plot(k_values, [1-s/max(db_scores) for s in db_scores], 'o-', label='1-DB (norm)')
+    plt.title('Metryki jakości klastrów')
     plt.xlabel('Liczba klastrów')
+    plt.legend()
     plt.grid(True)
-    
-    plt.subplot(1, 3, 2)
-    plt.plot(k_values, ch_scores, 'o-')
-    plt.title('Calinski-Harabasz Index')
-    plt.xlabel('Liczba klastrów')
-    plt.grid(True)
-    
-    plt.subplot(1, 3, 3)
-    plt.plot(k_values, db_scores, 'o-')
-    plt.title('Davies-Bouldin Index')
-    plt.xlabel('Liczba klastrów')
-    plt.grid(True)
-    
-    plt.tight_layout()
-    plt.savefig('optimal_k_analysis.png')
-    plt.close()
     
     # Znajdź optymalne wartości na podstawie metryk
     optimal_k_silhouette = k_values[np.argmax(silhouette_scores)]
@@ -183,13 +190,6 @@ for affinity in ['rbf', 'nearest_neighbors']:
     spectral_metrics = evaluate_clustering(X, spectral_labels, f"Spectral ({affinity})")
     visualize_clustering(X, spectral_labels, f"Spectral ({affinity})", spectral_metrics)
 
-# Podsumowanie wyników
-print("\n--- Podsumowanie wyników ---")
-print("Najlepsze wyniki dla tego zbioru danych uzyskano przy użyciu algorytmów:")
-print("1. DBSCAN - który dobrze radzi sobie z wykrywaniem klastrów o dowolnych kształtach")
-print("2. Spectral Clustering - który wykorzystuje podobieństwo między punktami, a nie tylko odległości")
-print("3. GMM - który modeluje dane jako mieszaninę rozkładów normalnych")
-
 # W przypadku dbscan możemy również sprawdzić inną kombinację parametrów
 print("\n--- DBSCAN z alternatywnymi parametrami ---")
 dbscan_alt = DBSCAN(eps=optimal_eps*0.8, min_samples=4)  # Mniejszy eps, mniej punktów min_samples
@@ -201,3 +201,14 @@ if len(set(dbscan_alt_labels)) > 1:
     visualize_clustering(X, dbscan_alt_labels, "DBSCAN (alt)", dbscan_alt_metrics)
 else:
     visualize_clustering(X, dbscan_alt_labels, "DBSCAN (alt)")
+
+# Podsumowanie wyników
+print("\n--- Podsumowanie wyników ---")
+print("Najlepsze wyniki dla tego zbioru danych uzyskano przy użyciu algorytmów:")
+print("1. DBSCAN - który dobrze radzi sobie z wykrywaniem klastrów o dowolnych kształtach")
+print("2. Spectral Clustering - który wykorzystuje podobieństwo między punktami, a nie tylko odległości")
+print("3. GMM - który modeluje dane jako mieszaninę rozkładów normalnych")
+
+# Dostosowanie układu
+plt.tight_layout(rect=[0, 0, 1, 0.97])  # Drobna korekta dla tytułu
+plt.show()
