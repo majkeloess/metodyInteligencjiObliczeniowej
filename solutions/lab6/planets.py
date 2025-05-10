@@ -191,19 +191,16 @@ def znajdz_optymalna_liczbe_klastrow(dane_przeskalowane, max_klastrow=10):
     
     return silhouette_opt
 
-# Funkcja do wizualizacji wyników klasteryzacji w przestrzeni 2D (PCA)
 def wizualizuj_klastry_2d(dane_przeskalowane, etykiety, centroids=None, tytul="Wizualizacja klastrów"):
     # Redukcja wymiarowości do 2D za pomocą PCA
     pca = PCA(n_components=2)
     dane_pca = pca.fit_transform(dane_przeskalowane)
     
-    # Wizualizacja klastrów
     plt.figure(figsize=(12, 10))
     
-    # Wykres punktów
+
     scatter = plt.scatter(dane_pca[:, 0], dane_pca[:, 1], c=etykiety, cmap='viridis', s=50, alpha=0.8)
     
-    # Dodanie centroidów, jeśli są dostępne
     if centroids is not None:
         centroids_pca = pca.transform(centroids)
         plt.scatter(centroids_pca[:, 0], centroids_pca[:, 1], marker='X', s=200, c='red', edgecolor='k', label='Centroidy')
@@ -409,41 +406,41 @@ def opis_klastra(wartosci, cechy):
     
     print(opis)
 
-# Funkcja do porównania wyników różnych metod klasteryzacji
-def porownaj_metody(dane_przeskalowane, etykiety_kmeans, etykiety_hierarchical, etykiety_dbscan=None):
-    plt.figure(figsize=(15, 5))
-    
-    # Redukcja wymiarowości do 2D za pomocą PCA
-    pca = PCA(n_components=2)
-    dane_pca = pca.fit_transform(dane_przeskalowane)
-    
-    # Wizualizacja wyników K-means
-    plt.subplot(1, 3, 1)
-    plt.scatter(dane_pca[:, 0], dane_pca[:, 1], c=etykiety_kmeans, cmap='viridis', s=40, alpha=0.8)
-    plt.title('K-means')
-    plt.xlabel(f'PC1 ({pca.explained_variance_ratio_[0]:.2%})')
-    plt.ylabel(f'PC2 ({pca.explained_variance_ratio_[1]:.2%})')
-    plt.colorbar(label='Klaster')
-    
-    # Wizualizacja wyników klasteryzacji hierarchicznej
-    plt.subplot(1, 3, 2)
-    plt.scatter(dane_pca[:, 0], dane_pca[:, 1], c=etykiety_hierarchical, cmap='viridis', s=40, alpha=0.8)
-    plt.title('Klasteryzacja hierarchiczna')
-    plt.xlabel(f'PC1 ({pca.explained_variance_ratio_[0]:.2%})')
-    plt.ylabel(f'PC2 ({pca.explained_variance_ratio_[1]:.2%})')
-    plt.colorbar(label='Klaster')
-    
-    # Wizualizacja wyników DBSCAN, jeśli dostępne
-    if etykiety_dbscan is not None:
-        plt.subplot(1, 3, 3)
-        plt.scatter(dane_pca[:, 0], dane_pca[:, 1], c=etykiety_dbscan, cmap='viridis', s=40, alpha=0.8)
-        plt.title('DBSCAN')
+    # Funkcja do porównania wyników różnych metod klasteryzacji
+    def porownaj_metody(dane_przeskalowane, etykiety_kmeans, etykiety_hierarchical, etykiety_dbscan=None):
+        plt.figure(figsize=(15, 5))
+        
+        # Redukcja wymiarowości do 2D za pomocą PCA
+        pca = PCA(n_components=2)
+        dane_pca = pca.fit_transform(dane_przeskalowane)
+        
+        # Wizualizacja wyników K-means
+        plt.subplot(1, 3, 1)
+        plt.scatter(dane_pca[:, 0], dane_pca[:, 1], c=etykiety_kmeans, cmap='viridis', s=40, alpha=0.8)
+        plt.title('K-means')
         plt.xlabel(f'PC1 ({pca.explained_variance_ratio_[0]:.2%})')
         plt.ylabel(f'PC2 ({pca.explained_variance_ratio_[1]:.2%})')
         plt.colorbar(label='Klaster')
-    
-    plt.tight_layout()
-    plt.show()
+        
+        # Wizualizacja wyników klasteryzacji hierarchicznej
+        plt.subplot(1, 3, 2)
+        plt.scatter(dane_pca[:, 0], dane_pca[:, 1], c=etykiety_hierarchical, cmap='viridis', s=40, alpha=0.8)
+        plt.title('Klasteryzacja hierarchiczna')
+        plt.xlabel(f'PC1 ({pca.explained_variance_ratio_[0]:.2%})')
+        plt.ylabel(f'PC2 ({pca.explained_variance_ratio_[1]:.2%})')
+        plt.colorbar(label='Klaster')
+        
+        # Wizualizacja wyników DBSCAN, jeśli dostępne
+        if etykiety_dbscan is not None:
+            plt.subplot(1, 3, 3)
+            plt.scatter(dane_pca[:, 0], dane_pca[:, 1], c=etykiety_dbscan, cmap='viridis', s=40, alpha=0.8)
+            plt.title('DBSCAN')
+            plt.xlabel(f'PC1 ({pca.explained_variance_ratio_[0]:.2%})')
+            plt.ylabel(f'PC2 ({pca.explained_variance_ratio_[1]:.2%})')
+            plt.colorbar(label='Klaster')
+        
+        plt.tight_layout()
+        plt.show()
 
 # Główna funkcja wykonująca analizę klasteryzacji
 def analiza_klasteryzacji_planet(sciezka_danych='../../data/lab6/planets.csv', usun_outliery=False):
