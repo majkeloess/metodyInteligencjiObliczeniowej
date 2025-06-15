@@ -14,7 +14,6 @@ def objective_function(x, y):
     term7 = -0.5 * y**2
     return term1 + term2 + term3 + term4 + term5 + term6 + term7
 
-# --- Implementacja PSO (skrócona, tylko do uruchomienia najlepszej konfiguracji) ---
 def pso_best_config(n_particles, n_dimensions, bounds, n_iterations, c1, c2, w, w_strategy='constant', v_max_ratio=0.2, random_seed=None):
     if random_seed is not None:
         np.random.seed(random_seed)
@@ -66,7 +65,6 @@ def pso_best_config(n_particles, n_dimensions, bounds, n_iterations, c1, c2, w, 
             
     return gbest_pos, gbest_fitness
 
-# --- Implementacja Algorytmu Genetycznego (GA) ---
 def genetic_algorithm(population_size, n_dimensions, bounds, n_generations, mutation_rate, crossover_rate, tournament_size=3, random_seed=None):
     if random_seed is not None:
         np.random.seed(random_seed)
@@ -84,7 +82,6 @@ def genetic_algorithm(population_size, n_dimensions, bounds, n_generations, muta
             best_fitness_overall = fitness_values[current_best_idx]
             best_solution_overall = np.copy(population[current_best_idx])
 
-        # Selekcja turniejowa
         selected_parents = []
         for _ in range(population_size):
             tournament_indices = np.random.choice(population_size, tournament_size, replace=False)
@@ -93,11 +90,9 @@ def genetic_algorithm(population_size, n_dimensions, bounds, n_generations, muta
             selected_parents.append(population[tournament_indices[winner_idx_in_tournament]])
         selected_parents = np.array(selected_parents)
 
-        # Krzyżowanie (blend crossover - BLX-alpha, alpha=0.5)
         offspring = []
         for i in range(0, population_size, 2):
             parent1 = selected_parents[i]
-            # Upewnij się, że mamy drugiego rodzica, jeśli populacja jest nieparzysta
             parent2_idx = (i + 1) if (i+1) < population_size else i 
             parent2 = selected_parents[parent2_idx]
             

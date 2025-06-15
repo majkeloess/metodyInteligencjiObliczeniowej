@@ -71,25 +71,24 @@ def pso(n_particles, n_dimensions, bounds, n_iterations, c1, c2, w, w_strategy='
         
     return gbest_pos, gbest_fitness, convergence_history
 
-def run_experiment(n_runs, config_name, **pso_params):
+def run_experiment(n_runs, config_name, show_plot=False, **pso_params):
     print(f"--- Rozpoczęcie eksperymentu: {config_name} ---")
     all_fitness_values = []
     
-    # Pojedynczy przebieg dla wykresu
     plot_seed = 42 
     _, _, single_run_history = pso(**pso_params, random_seed=plot_seed)
     
-    plt.figure(figsize=(10, 6))
-    plt.plot(single_run_history)
-    plt.title(f'Zbieżność PSO dla {config_name} (jeden przebieg)')
-    plt.xlabel('Iteracja')
-    plt.ylabel('Najlepsza wartość funkcji celu')
-    plt.grid(True)
-    plt.show()
+    if show_plot:
+        plt.figure(figsize=(10, 6))
+        plt.plot(single_run_history)
+        plt.title(f'Zbieżność PSO dla {config_name} (jeden przebieg)')
+        plt.xlabel('Iteracja')
+        plt.ylabel('Najlepsza wartość funkcji celu')
+        plt.grid(True)
+        plt.show()
 
-    # 10 przebiegów dla statystyk
     for i in range(n_runs):
-        _, best_fitness, _ = pso(**pso_params, random_seed=i) # Różne ziarna dla każdego przebiegu
+        _, best_fitness, _ = pso(**pso_params, random_seed=i)
         all_fitness_values.append(best_fitness)
     
     mean_fitness = np.mean(all_fitness_values)
@@ -109,15 +108,9 @@ if __name__ == "__main__":
     N_ITERATIONS = 100
     N_RUNS = 10
 
-    # Tworzenie katalogu na wykresy, jeśli nie istnieje
-    # plot_directory = "pso_plots_zad1"
-    # if not os.path.exists(plot_directory):
-    #     os.makedirs(plot_directory)
 
     all_results = []
 
-    # Definicja konfiguracji eksperymentów
-    # Ustalona wartość w dla testów c1, c2
     fixed_w_for_c_tests = 0.7
 
     experiments_c1_c2 = [
@@ -130,26 +123,22 @@ if __name__ == "__main__":
     ]
 
     print("Rozpoczęcie badań wpływu parametrów c1 i c2 (w=0.7):")
-    for exp_config in experiments_c1_c2:
+    for idx, exp_config in enumerate(experiments_c1_c2):
         params = {
             "n_particles": N_PARTICLES, "n_dimensions": N_DIMENSIONS,
             "bounds": BOUNDS, "n_iterations": N_ITERATIONS,
             "c1": exp_config["c1"], "c2": exp_config["c2"],
             "w": exp_config["w"], "w_strategy": exp_config["w_strategy"]
         }
-        mean_f, std_f, name = run_experiment(N_RUNS, exp_config["name"], **params)
+        show_plot = idx == 0  # Tylko dla pierwszej konfiguracji c1/c2
+        mean_f, std_f, name = run_experiment(N_RUNS, exp_config["name"], show_plot=show_plot, **params)
         all_results.append({"name": name, "mean_fitness": mean_f, "std_fitness": std_f, 
                             "c1": exp_config["c1"], "c2": exp_config["c2"], "w_val": exp_config["w"], "w_strat": exp_config["w_strategy"]})
 
-    # Ustalona para c1, c2 dla testów w
-    # Wybierzmy c1=1.5, c2=1.5 jako bazowe, lub c1=c2=2.2, które było też testowane
-    # Dla spójności z poleceniem, można użyć c1=c2=2.2 jeśli wypadło dobrze, 
-    # lub standardowe c1=1.5, c2=1.5
-    # Użyjmy c1=1.5, c2=1.5 dla testów 'w'
     fixed_c1_for_w_tests = 1.5
     fixed_c2_for_w_tests = 1.5
     
-    print("\\nRozpoczęcie badań wpływu parametru w (c1=1.5, c2=1.5):")
+    print("\nRozpoczęcie badań wpływu parametru w (c1=1.5, c2=1.5):")
     experiments_w = [
         {"w": 0.4, "w_strategy": "constant", "name": "w=0.4_c1=1.5_c2=1.5"},
         {"w": 0.7, "w_strategy": "constant", "name": "w=0.7_c1=1.5_c2=1.5"},
@@ -157,20 +146,19 @@ if __name__ == "__main__":
         {"w": (0.9, 0.4), "w_strategy": "linear_decrease", "name": "w=0.9-0.4_c1=1.5_c2=1.5"},
     ]
     
-    for exp_config in experiments_w:
+    for idx, exp_config in enumerate(experiments_w):
         params = {
             "n_particles": N_PARTICLES, "n_dimensions": N_DIMENSIONS,
             "bounds": BOUNDS, "n_iterations": N_ITERATIONS,
             "c1": fixed_c1_for_w_tests, "c2": fixed_c2_for_w_tests,
             "w": exp_config["w"], "w_strategy": exp_config["w_strategy"]
         }
-        mean_f, std_f, name = run_experiment(N_RUNS, exp_config["name"], **params)
+        show_plot = idx == 0 
+        mean_f, std_f, name = run_experiment(N_RUNS, exp_config["name"], show_plot=show_plot, **params)
         all_results.append({"name": name, "mean_fitness": mean_f, "std_fitness": std_f,
                             "c1": fixed_c1_for_w_tests, "c2": fixed_c2_for_w_tests, "w_val": exp_config["w"], "w_strat": exp_config["w_strategy"]})
 
-    print("\\n--- Podsumowanie wszystkich eksperymentów ---")
-    # Sortowanie wyników: najpierw według średniej wartości funkcji (im niższa, tym lepiej),
-    # a potem według odchylenia standardowego (im niższe, tym lepiej)
+    print("\n--- Podsumowanie wszystkich eksperymentów ---")
     all_results.sort(key=lambda r: (r["mean_fitness"], r["std_fitness"]))
 
     for res in all_results:
@@ -180,11 +168,19 @@ if __name__ == "__main__":
     if all_results:
         best_config = all_results[0]
         w_info_best = f"w={best_config['w_val']}" if best_config['w_strat'] == 'constant' else f"w={best_config['w_val'][0]}-{best_config['w_val'][1]} ({best_config['w_strat']})"
-        print(f"\\nNajlepsza konfiguracja (najniższa średnia wartość funkcji celu, następnie najniższe odchylenie standardowe):")
+        print(f"\nNajlepsza konfiguracja (najniższa średnia wartość funkcji celu, następnie najniższe odchylenie standardowe):")
         print(f"  Nazwa: {best_config['name']}")
         print(f"  Parametry: c1={best_config['c1']}, c2={best_config['c2']}, {w_info_best}")
         print(f"  Średnia wartość funkcji celu: {best_config['mean_fitness']:.6f}")
         print(f"  Odchylenie standardowe: {best_config['std_fitness']:.6f}")
+        # Pokaż wykres dla najlepszej konfiguracji
+        params = {
+            "n_particles": N_PARTICLES, "n_dimensions": N_DIMENSIONS,
+            "bounds": BOUNDS, "n_iterations": N_ITERATIONS,
+            "c1": best_config["c1"], "c2": best_config["c2"],
+            "w": best_config["w_val"], "w_strategy": best_config["w_strat"]
+        }
+        run_experiment(N_RUNS, f"Najlepsza: {best_config['name']}", show_plot=True, **params)
     else:
         print("Nie przeprowadzono żadnych eksperymentów.")
 
